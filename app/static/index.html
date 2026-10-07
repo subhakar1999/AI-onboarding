@@ -152,43 +152,77 @@
 
           </div>
 
-          <!-- Main Chat Area (Mock) -->
-          <div class="lg:w-2/3 p-6 flex flex-col h-[500px]">
+          <!-- Main Chat Area -->
+          <div class="lg:w-2/3 p-6 flex flex-col h-[580px]">
             <!-- Header -->
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
               <div class="flex items-center gap-3">
                 <div id="chat-icon" class="bg-blue-500/20 w-10 h-10 rounded-lg flex items-center justify-center text-blue-400">
                   <i data-lucide="headphones" class="w-5 h-5"></i>
                 </div>
                 <div>
-                  <h3 id="chat-title" class="text-white font-bold text-lg">Customer Support</h3>
-                  <div class="flex items-center gap-2 text-xs text-slate-400" id="chat-cost">
+                  <h3 id="chat-title" class="text-white font-bold text-lg leading-tight">Customer Support</h3>
+                  <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5" id="chat-cost">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online &bull; Est. cost: $0.001 / query
                   </div>
                 </div>
               </div>
-              <a href="/auth" class="bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition border border-slate-700 hidden sm:block">
-                Deploy Agent
+              <a href="/auth" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow-md shadow-blue-900/30 flex items-center gap-1.5">
+                <span>Deploy Agent</span> <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
               </a>
             </div>
 
-            <!-- Messages Area -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto space-y-4 pr-2 flex flex-col pb-4">
-              <!-- Initial Greeting -->
-              <div class="flex gap-3 max-w-[80%]">
-                <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
-                  <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
+            <!-- Interactive Tour Telemetry & Progress Banner -->
+            <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 mb-3 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                <span class="text-slate-300 font-medium">Interactive Discovery:</span>
+                <span id="prompt-counter-badge" class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-semibold text-[11px]">Prompt 0 / 10</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-1.5">
+                  <span class="text-[11px] text-slate-400">Progress:</span>
+                  <div class="w-20 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div id="prompt-progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full w-[5%] transition-all duration-300"></div>
+                  </div>
                 </div>
-                <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed">
-                  Hi there! I'm the Customer Support agent. I can help answer user questions based on your knowledge base. Try asking me something!
+                <div class="flex items-center gap-1 text-[11px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-mono text-emerald-400">
+                  <span class="text-slate-500 font-sans">Simulated:</span>
+                  <span id="session-spend-counter">$0.000000</span>
                 </div>
               </div>
             </div>
 
+            <!-- Messages Area -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3.5 pr-2 flex flex-col pb-2 text-xs sm:text-sm">
+              <!-- Initial Greeting -->
+              <div class="flex gap-3 max-w-[85%]">
+                <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
+                  <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
+                </div>
+                <div class="bg-slate-800/90 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed border border-slate-750">
+                  Hi there! 👋 I am your interactive MeterMind agent. Send any prompt below or click one of the suggested exploration buttons to learn how our 100% Pay-As-You-Go engine works across your first 10 prompts!
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick-Tap Exploration Prompt Chips -->
+            <div class="pt-2 pb-1.5">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i> Suggested Exploration Prompts:
+                </span>
+                <span id="chip-hint" class="text-[10px] text-slate-500">Tap to auto-send</span>
+              </div>
+              <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" id="prompt-chips">
+                <!-- Dynamically populated in JavaScript -->
+              </div>
+            </div>
+
             <!-- Input Area -->
-            <div class="mt-auto relative pt-4">
-              <input type="text" id="chat-input" placeholder="Type a message to test this agent..." class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-4 pr-12 text-slate-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition" onkeypress="handleKeyPress(event)">
-              <button onclick="sendMessage()" class="absolute right-2 top-[calc(50%+8px)] -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-lg flex items-center justify-center transition">
+            <div class="relative pt-1">
+              <input type="text" id="chat-input" placeholder="Type a prompt or choose a suggested exploration above..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl py-3 pl-4 pr-12 text-slate-200 text-xs sm:text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder:text-slate-500" onkeypress="handleKeyPress(event)">
+              <button onclick="sendMessage()" id="send-btn" class="absolute right-2 top-[calc(50%+2px)] -translate-y-1/2 bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-lg flex items-center justify-center transition shadow-md shadow-blue-600/30">
                 <i data-lucide="send" class="w-4 h-4"></i>
               </button>
             </div>
@@ -328,6 +362,136 @@
     };
 
     let currentAgent = 'support';
+    let promptCount = 0;
+    let sessionSpend = 0.000000;
+
+    const tourPrompts = [
+      {
+        chip: "💸 Pay-as-you-go vs SaaS",
+        text: "How does MeterMind's pay-as-you-go model save money compared to traditional $30/month SaaS subscriptions?",
+        factTitle: "💡 Insight 1/10: Micro-Dollar Metering vs Fixed SaaS",
+        factBadge: "FinOps Architecture",
+        factText: "In traditional SaaS, you pay $30-$50/month per user even when agents sit idle. MeterMind charges solely for actual tokens processed, down to 6 decimal places ($0.000001). If an agent is idle on weekends, your bill is literally $0.00."
+      },
+      {
+        chip: "⚡ Autonomous Circuit Breakers",
+        text: "What prevents autonomous agents from running away with my cloud budget?",
+        factTitle: "⚡ Insight 2/10: FinOps Circuit Breakers",
+        factBadge: "Runway Protection",
+        factText: "Every MeterMind agent is assigned an enforceable monthly budget cap. The execution runtime checks spend before every inference—the microsecond a cap is reached, an HTTP 402 breaker pauses execution automatically without manual intervention."
+      },
+      {
+        chip: "🛡️ PII & Secret Redaction",
+        text: "Can you demonstrate how MeterMind protects sensitive data like credit cards or API tokens?",
+        factTitle: "🛡️ Insight 3/10: Real-Time Guardrail Pipeline",
+        factBadge: "Enterprise Security",
+        factText: "Prompts pass through an in-memory regex Data Loss Prevention (DLP) pipeline before touching any external model. SSNs, credit cards, emails, and API keys (`sk-...`) are sanitized into `[REDACTED_SECRET]` tokens on the fly."
+      },
+      {
+        chip: "🌐 Origin-Locked Widgets",
+        text: "How do you prevent third parties from stealing my embed widget key?",
+        factTitle: "🌐 Insight 4/10: Cryptographic Origin Whitelisting",
+        factBadge: "Anti-Scraping",
+        factText: "Public client widget keys (`af_pub_...`) are bound to your verified website domain. Ingress middleware verifies incoming HTTP `Origin` and `Referer` headers, immediately rejecting calls from unauthorized domains."
+      },
+      {
+        chip: "🤖 Model Rate Catalog",
+        text: "What LLMs are supported and how do the token rates differ?",
+        factTitle: "🤖 Insight 5/10: Wholesale Model Routing",
+        factBadge: "Model Diversity",
+        factText: "MeterMind provides direct transparent rates: GPT-4o-mini at $0.15/$0.60 per 1M tokens for high-volume support, and GPT-4o or Claude 3.5 Sonnet for deep analytical tasks. You can assign different models per agent effortlessly."
+      },
+      {
+        chip: "🧠 Vector Knowledge (RAG)",
+        text: "How do agents query company knowledge bases without hallucinations?",
+        factTitle: "🧠 Insight 6/10: PostgreSQL + pgvector Semantic Retrieval",
+        factBadge: "Knowledge Engine",
+        factText: "Uploaded manuals, FAQs, and policies are indexed into 1536-dimensional vector chunks in PostgreSQL using pgvector with HNSW indexing. Agents perform sub-millisecond semantic cosine similarity lookups for grounded answers."
+      },
+      {
+        chip: "🏢 Department Chargeback",
+        text: "Can our finance team track token usage across Engineering vs Customer Support?",
+        factTitle: "🏢 Insight 7/10: Cost-Center Attribution",
+        factBadge: "Corporate Accounting",
+        factText: "Every single API inference generates an immutable `UsageRecord` tagged with the agent's cost-center (e.g., 'Engineering', 'CustomerSupport'). Finance teams can export itemized monthly chargeback reports down to the cent."
+      },
+      {
+        chip: "📦 30-Second Web Embed",
+        text: "How simple is it to add this agent into our production website?",
+        factTitle: "📦 Insight 8/10: Zero-Build Web Component",
+        factBadge: "Developer Velocity",
+        factText: "Deploying is as easy as adding `<script src='.../widget.js' data-widget-key='af_pub_...'></script>`. The isolated Shadow DOM ensures widget CSS styling never conflicts with your existing website's stylesheet."
+      },
+      {
+        chip: "🔍 Automated Site Verifier",
+        text: "What happens during background installation verification?",
+        factTitle: "🔍 Insight 9/10: Asynchronous Verification Engine",
+        factBadge: "Reliability",
+        factText: "When a customer requests widget onboarding, an async background task pings their registered domain, parsing HTML script tags to confirm proper installation before enabling the widget to 'LIVE' status."
+      },
+      {
+        chip: "🚀 Deploying to Production",
+        text: "I want to deploy my own custom agent now. What are the next steps?",
+        factTitle: "🎉 Insight 10/10: Tour Complete & Ready for Launch!",
+        factBadge: "Production Ready",
+        factText: "You've completed all 10 discovery insights of MeterMind! You're ready to create custom agents, define system prompts, set budget caps, and embed widgets onto your live websites."
+      }
+    ];
+
+    function renderPromptChips() {
+      const container = document.getElementById('prompt-chips');
+      if (!container) return;
+
+      if (promptCount >= 10) {
+        container.innerHTML = `
+          <div class="flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-emerald-300 text-xs w-full justify-between">
+            <span>🎉 Tour completed! You've explored all 10 key architecture features.</span>
+            <button onclick="resetTour()" class="underline text-emerald-400 hover:text-white font-semibold">Restart Tour</button>
+          </div>
+        `;
+        return;
+      }
+
+      // Show current recommended prompt + 2 upcoming ones
+      const nextPrompts = tourPrompts.slice(promptCount, promptCount + 3);
+      container.innerHTML = nextPrompts.map((p, idx) => `
+        <button 
+          onclick="sendTourPrompt('${escapeHtml(p.text).replace(/'/g, "\\'")}')"
+          class="flex-shrink-0 text-left bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-slate-700/80 hover:border-blue-500/50 transition flex items-center gap-1.5 shadow-sm group"
+        >
+          <span class="text-blue-400 group-hover:text-blue-300 font-semibold">#${promptCount + idx + 1}</span>
+          <span>${escapeHtml(p.chip)}</span>
+        </button>
+      `).join('');
+    }
+
+    function sendTourPrompt(promptText) {
+      const input = document.getElementById('chat-input');
+      input.value = promptText;
+      sendMessage();
+    }
+
+    function resetTour() {
+      promptCount = 0;
+      sessionSpend = 0.000000;
+      document.getElementById('prompt-counter-badge').innerText = 'Prompt 0 / 10';
+      document.getElementById('prompt-progress-bar').style.width = '5%';
+      document.getElementById('session-spend-counter').innerText = '$0.000000';
+      
+      const messagesDiv = document.getElementById('chat-messages');
+      messagesDiv.innerHTML = `
+        <div class="flex gap-3 max-w-[85%]">
+          <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
+          </div>
+          <div class="bg-slate-800/90 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed border border-slate-750">
+            Tour restarted! 👋 Ask any prompt or tap one of the suggested discovery chips below.
+          </div>
+        </div>
+      `;
+      renderPromptChips();
+      lucide.createIcons();
+    }
     
     function selectAgent(id) {
       currentAgent = id;
@@ -340,7 +504,9 @@
       
       // Set active tab classes
       const activeTab = document.getElementById(`btn-${id}`);
-      activeTab.className = `agent-tab text-left p-4 rounded-2xl transition ${agent.tabClass}`;
+      if (activeTab) {
+        activeTab.className = `agent-tab text-left p-4 rounded-2xl transition ${agent.tabClass}`;
+      }
       
       // Update header UI
       document.getElementById('chat-title').innerText = agent.title;
@@ -350,19 +516,19 @@
       // Update cost text
       document.getElementById('chat-cost').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Online &bull; Est. cost: ${agent.cost} / query`;
       
-      // Clear messages and set greeting
+      // Append agent greeting
       const messagesDiv = document.getElementById('chat-messages');
-      messagesDiv.innerHTML = `
-        <div class="flex gap-3 max-w-[80%]">
+      messagesDiv.innerHTML += `
+        <div class="flex gap-3 max-w-[85%] mt-2">
           <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
             <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
           </div>
-          <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed">
-            ${agent.greeting}
+          <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed border border-slate-700/60">
+            Switched to <strong class="text-white">${agent.title}</strong>. ${agent.greeting}
           </div>
         </div>
       `;
-      
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
       lucide.createIcons();
     }
 
@@ -381,8 +547,8 @@
       
       // Add user message
       messagesDiv.innerHTML += `
-        <div class="flex gap-3 max-w-[80%] ml-auto justify-end">
-          <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed">
+        <div class="flex gap-3 max-w-[85%] ml-auto justify-end">
+          <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-xs sm:text-sm leading-relaxed shadow-sm">
             ${escapeHtml(text)}
           </div>
           <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
@@ -398,14 +564,14 @@
       // Show typing indicator
       const typingId = 'typing-' + Date.now();
       messagesDiv.innerHTML += `
-        <div id="${typingId}" class="flex gap-3 max-w-[80%]">
+        <div id="${typingId}" class="flex gap-3 max-w-[85%]">
           <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
             <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
           </div>
-          <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2">
-            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
-            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
-            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+          <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-xs flex items-center gap-2 border border-slate-700/50">
+            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></span>
+            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
           </div>
         </div>
       `;
@@ -423,24 +589,79 @@
         });
         
         let reply = "Sorry, I couldn't process that.";
+        let costUsd = 0.000042;
         if (res.ok) {
           const data = await res.json();
           reply = data.reply;
+          if (data.cost_usd) costUsd = data.cost_usd;
         }
 
         const typingEl = document.getElementById(typingId);
         if (typingEl) typingEl.remove();
+
+        // Increment Prompt Tour Count
+        promptCount++;
+        sessionSpend += costUsd;
+
+        // Update telemetry banner
+        document.getElementById('prompt-counter-badge').innerText = `Prompt ${Math.min(promptCount, 10)} / 10`;
+        const progressPct = Math.min((promptCount / 10) * 100, 100);
+        document.getElementById('prompt-progress-bar').style.width = `${progressPct}%`;
+        document.getElementById('session-spend-counter').innerText = `$${sessionSpend.toFixed(6)}`;
         
+        // Grab the informative fact for this prompt index (up to 10)
+        const currentFact = tourPrompts[Math.min(promptCount - 1, tourPrompts.length - 1)];
+
+        // Append Agent Response
         messagesDiv.innerHTML += `
-          <div class="flex gap-3 max-w-[80%]">
+          <div class="flex gap-3 max-w-[85%]">
             <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
               <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
             </div>
-            <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(reply)}</div>
+            <div class="space-y-2.5 flex-1">
+              <div class="bg-slate-800/90 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-xs sm:text-sm leading-relaxed whitespace-pre-wrap border border-slate-700/60 shadow-sm">${escapeHtml(reply)}</div>
+              
+              <!-- MeterMind Architecture Info Card for first 10 prompts -->
+              <div class="bg-gradient-to-r from-blue-950/40 to-indigo-950/40 border border-blue-500/30 rounded-xl p-3 text-xs shadow-md">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-bold text-blue-300 flex items-center gap-1.5">
+                    ${escapeHtml(currentFact.factTitle)}
+                  </span>
+                  <span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 font-medium">
+                    ${escapeHtml(currentFact.factBadge)}
+                  </span>
+                </div>
+                <p class="text-slate-300 text-[11px] sm:text-xs leading-relaxed mt-1">
+                  ${escapeHtml(currentFact.factText)}
+                </p>
+                <div class="mt-2 pt-2 border-t border-blue-500/20 flex items-center justify-between text-[10px] text-slate-400">
+                  <span class="font-mono text-emerald-400">⚡ Incurred Query Cost: $${costUsd.toFixed(6)}</span>
+                  <span>100% Pay-As-You-Go</span>
+                </div>
+              </div>
+            </div>
           </div>
         `;
+
+        if (promptCount === 10) {
+          messagesDiv.innerHTML += `
+            <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-2 mt-2">
+              <h4 class="font-bold text-emerald-300 text-sm">🎉 You've Completed the 10-Prompt MeterMind Discovery Tour!</h4>
+              <p class="text-xs text-slate-300 max-w-md mx-auto">You've seen how micro-metering, circuit breakers, PII shields, and origin locking protect your business. Ready to deploy your own agents?</p>
+              <div class="flex justify-center gap-3 pt-2">
+                <a href="/auth" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-5 py-2.5 rounded-lg transition inline-flex items-center gap-1.5 shadow-md shadow-emerald-900/40">
+                  <span>Sign In Free with Magic Link</span> <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+                <button onclick="resetTour()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-4 py-2.5 rounded-lg transition">Restart Tour</button>
+              </div>
+            </div>
+          `;
+        }
+
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        renderPromptChips();
         lucide.createIcons();
+
       } catch (err) {
         const typingEl = document.getElementById(typingId);
         if (typingEl) typingEl.remove();
@@ -451,6 +672,11 @@
       if (!str) return '';
       return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
     }
+
+    // Initialize Prompt Chips on load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderPromptChips();
+    });
   </script>
 </body>
 </html>

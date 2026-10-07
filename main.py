@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.config import settings
 from app.database import engine, Base
-from app.routers import agent, execution, finops, auth, inquiries, tenant
+from app.routers import agent, execution, finops, auth, inquiries, managed
 
 
 @asynccontextmanager
@@ -40,7 +40,7 @@ app.include_router(execution.router, prefix=settings.API_V1_PREFIX)
 app.include_router(finops.router, prefix=settings.API_V1_PREFIX)
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(inquiries.router, prefix=settings.API_V1_PREFIX)
-app.include_router(tenant.router, prefix=settings.API_V1_PREFIX)
+app.include_router(managed.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/healthz", tags=["System Health"])
 async def health_check():

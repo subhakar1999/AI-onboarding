@@ -12,7 +12,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.agent import Agent
-from app.models.tenant import TenantProject
+
 from urllib.parse import urlparse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -114,14 +114,16 @@ async def get_authenticated_agent_caller(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
     # Path A: External Agent API Key
-    if token.startswith("af_live_"):
-        incoming_hash = AuthService.hash_api_key(token)
-        
-        # 1. Check if it's a Tenant-Scoped API Key (Enforces Origin Locking)
-        tenant_result = await db.execute(select(TenantProject).where(TenantProject.api_key_hash == incoming_hash))
+    if token.startswith("af_pub_"):
+        # 1. Check if it's a Tenant-Scoped Public API Key (Enforces Origin Locking)
+        from app.models.provisioning import ManagedServiceRequest, ProjectStatus
+        tenant_result = await db.execute(select(ManagedServiceRequest).where(ManagedServiceRequest.public_widget_key == token))
         tenant = tenant_result.scalar_one_or_none()
         
         if tenant:
+            if tenant.status != ProjectStatus.LIVE:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Service is not active or verified")
+                
             # Enforce Dynamic Origin Whitelist
             origin = request.headers.get("origin") or request.headers.get("referer")
             if origin:
@@ -136,10 +138,14 @@ async def get_authenticated_agent_caller(
                 
             return {"caller_type": "TENANT_API_KEY", "user_id": str(tenant.user_id), "department": agent.department, "agent": agent}
             
-        # 2. Fallback to Agent-Specific API Key
-        elif agent.api_key_hash == incoming_hash:
-            return {"caller_type": "AGENT_API_KEY", "user_id": str(agent.owner_id), "department": agent.department, "agent": agent}
+        else:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Widget Key")
             
+    elif token.startswith("af_live_"):
+        incoming_hash = AuthService.hash_api_key(token)
+        # 2. Fallback to Agent-Specific API Key
+        if agent.api_key_hash == incoming_hash:
+            return {"caller_type": "AGENT_API_KEY", "user_id": str(agent.owner_id), "department": agent.department, "agent": agent}
         else:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
 

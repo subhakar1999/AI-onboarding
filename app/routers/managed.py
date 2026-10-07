@@ -45,8 +45,22 @@ async def create_managed_project(
     # Generate Ephemeral/Tenant-Scoped Public API Key for Widget
     public_widget_key = f"af_pub_{secrets.token_urlsafe(32)}"
 
+    from app.models.agent import Agent
+    agent = Agent(
+        owner_id=user.id,
+        name=f"{payload.project_name} Support Bot",
+        department="ManagedServices",
+        model_name="gpt-4o-mini",  # Defaulting to cost effective for MaaS
+        system_prompt="You are a helpful customer support assistant for " + payload.project_name,
+        monthly_budget_usd=50.00,
+        hard_stop_on_breach=True
+    )
+    db.add(agent)
+    await db.flush() # flush to get agent.id
+
     project = ManagedServiceRequest(
         user_id=user.id,
+        provisioned_agent_id=agent.id,
         project_name=payload.project_name,
         registered_domain=domain_clean,
         public_widget_key=public_widget_key,
@@ -121,8 +135,50 @@ async def execute_widget(
     if project.status != ProjectStatus.LIVE:
         raise HTTPException(status_code=403, detail="Service is not active or pending verification.")
 
-    # In a real implementation, you would trigger the LLM/Agent execution here.
-    # For now, returning a mock response.
+    from app.models.agent import Agent
+    from app.models.billing import UsageRecord
+    from app.services.runtime import AgentExecutionRuntime
+    
+    agent = await db.get(Agent, project.provisioned_agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Provisioned agent not found.")
+
+    # FinOps Circuit Breaker Check
+    if agent.status == "PAUSED":
+        raise HTTPException(status_code=403, detail="Agent is paused by administrator")
+    if agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd:
+        agent.status = "CIRCUIT_BROKEN"
+        await db.commit()
+        raise HTTPException(status_code=402, detail="Agent monthly budget breached.")
+
+    # Format user message
+    class MockMessage:
+        def __init__(self, role, content):
+            self.role = role
+            self.content = content
+            
+    messages = [MockMessage(role="user", content=payload.message)]
+    
+    # Run Agent
+    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=messages)
+    
+    # Ledger the usage
+    usage_entry = UsageRecord(
+        agent_id=agent.id,
+        user_id=str(project.user_id),
+        cost_center=agent.department,
+        model_name=agent.model_name,
+        prompt_tokens=exec_result["prompt_tokens"],
+        completion_tokens=exec_result["completion_tokens"],
+        total_tokens=exec_result["total_tokens"],
+        latency_ms=exec_result["latency_ms"],
+        cost_usd=exec_result["cost_usd"]
+    )
+    agent.current_spend_usd += exec_result["cost_usd"]
+    db.add(usage_entry)
+    await db.commit()
+
     return {
-        "reply": f"AgentForge Assistant: I received your message '{payload.message}'. My identity is verified for domain {project.registered_domain}."
+        "reply": exec_result["output_text"],
+        "cost_usd": float(exec_result["cost_usd"])
     }

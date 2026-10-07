@@ -18,6 +18,7 @@ class ManagedServiceRequest(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Domains and CORS
+    provisioned_agent_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)
     project_name: Mapped[str] = mapped_column(String(100), nullable=False)
     registered_domain: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     

@@ -4,14 +4,14 @@ from bs4 import BeautifulSoup
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.provisioning import ManagedServiceRequest, ProjectStatus
-from app.database import async_session_maker
+from app.database import AsyncSessionLocal
 
 async def verify_widget_installation(project_id: str, max_retries: int = 3):
     """
     Background task to verify that the customer has installed the AgentForge widget.
     It scrapes the registered domain and checks for <script src="...widget.js" data-widget-key="...">.
     """
-    async with async_session_maker() as db:
+    async with AsyncSessionLocal() as db:
         result = await db.execute(select(ManagedServiceRequest).where(ManagedServiceRequest.id == project_id))
         project = result.scalar_one_or_none()
         
@@ -20,8 +20,11 @@ async def verify_widget_installation(project_id: str, max_retries: int = 3):
 
         domain = project.registered_domain
         widget_key = project.public_widget_key
-        # We need to construct the URL to check. We will assume https by default.
-        url = f"https://{domain}" if not domain.startswith("http") else domain
+        # We need to construct the URL to check. We will assume https by default, except for localhost.
+        if domain.startswith("localhost") or domain.startswith("127.0.0.1"):
+            url = f"http://{domain}"
+        else:
+            url = f"https://{domain}" if not domain.startswith("http") else domain
 
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             for attempt in range(max_retries):
@@ -58,3 +61,4 @@ async def verify_widget_installation(project_id: str, max_retries: int = 3):
             # If we reach here, verification failed.
             print(f"[Verification] Failed: Could not verify widget on {domain} after {max_retries} attempts.")
             # Depending on business logic, we could leave it as PENDING_VERIFICATION or set to SUSPENDED.
+

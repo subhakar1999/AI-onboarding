@@ -3,7 +3,10 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+import smtplib
+from email.message import EmailMessage
 from app.database import get_db
+from app.config import settings
 from app.models.user import User, UserRole, VerificationToken
 from app.services.auth import AuthService, get_current_user
 import secrets
@@ -16,11 +19,33 @@ class MagicLinkRequest(BaseModel):
     full_name: str | None = "Unknown"
 
 def send_magic_link_email(email: str, link: str):
-    # Mocking the email delivery (In production use Resend or SendGrid)
-    print("=" * 60)
-    print(f"📧 EMAIL SENT TO: {email}")
-    print(f"🔗 MAGIC LINK: {link}")
-    print("=" * 60)
+    if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
+        try:
+            msg = EmailMessage()
+            msg.set_content(f"Click the link below to securely sign into AgentForge:
+
+{link}
+
+This link expires in 15 minutes.")
+            msg['Subject'] = 'Your AgentForge Magic Link'
+            msg['From'] = settings.SMTP_FROM
+            msg['To'] = email
+
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
+            print(f"?? MAGIC LINK EMAIL SENT TO: {email} VIA SMTP")
+        except Exception as e:
+            print(f"?? ERROR SENDING EMAIL TO {email}: {e}")
+            print("=" * 60)
+            print(f"?? MAGIC LINK FALLBACK: {link}")
+            print("=" * 60)
+    else:
+        print("=" * 60)
+        print(f"?? SMTP NOT CONFIGURED. MOCK EMAIL SENT TO: {email}")
+        print(f"?? MAGIC LINK: {link}")
+        print("=" * 60)
 
 @router.post("/magic-link")
 async def request_magic_link(
@@ -107,7 +132,7 @@ async def verify_magic_link(token: str, email: str, response: Response, db: Asyn
         key="access_token", 
         value=f"Bearer {jwt_token}", 
         httponly=True, 
-        secure=False, # Set True in prod (HTTPS)
+        secure=settings.ENV == 'production',
         samesite="lax",
         max_age=12*60*60
     )

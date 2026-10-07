@@ -1,7 +1,7 @@
 (function() {
     // Prevent multiple initializations
-    if (window.AgentForgeWidgetInitialized) return;
-    window.AgentForgeWidgetInitialized = true;
+    if (window.MeterMindWidgetInitialized) return;
+    window.MeterMindWidgetInitialized = true;
 
     // Find the script tag that loaded this script to extract configuration
     const scripts = document.getElementsByTagName('script');
@@ -14,24 +14,24 @@
     }
 
     if (!currentScript) {
-        console.error("AgentForge: Could not find the widget.js script tag.");
+        console.error("MeterMind: Could not find the widget.js script tag.");
         return;
     }
 
     const widgetKey = currentScript.getAttribute('data-widget-key');
     if (!widgetKey || !widgetKey.startsWith('af_pub_')) {
-        console.error("AgentForge: Valid data-widget-key (starting with af_pub_) is required.");
+        console.error("MeterMind: Valid data-widget-key (starting with af_pub_) is required.");
         return;
     }
 
-    // Base URL for the AgentForge API
+    // Base URL for the MeterMind API
     // We infer the base URL from the script src
     const widgetUrl = new URL(currentScript.src);
     const apiBaseUrl = `${widgetUrl.protocol}//${widgetUrl.host}/api/v1`;
 
     // Create the container element for the Shadow DOM
     const container = document.createElement('div');
-    container.id = 'agentforge-widget-container';
+    container.id = 'metermind-widget-container';
     // Stick the container to the bottom right of the page
     container.style.position = 'fixed';
     container.style.bottom = '20px';
@@ -174,7 +174,7 @@
     chatPanel.className = 'chat-panel';
     chatPanel.innerHTML = `
         <div class="chat-header">
-            <span>AgentForge Assistant</span>
+            <span>MeterMind Assistant</span>
             <button class="close-button">&times;</button>
         </div>
         <div class="chat-messages" id="messages">
@@ -250,7 +250,7 @@
             appendMessage(data.reply || 'No response received.', 'agent');
 
         } catch (error) {
-            console.error("AgentForge Widget Error:", error);
+            console.error("MeterMind Widget Error:", error);
             appendMessage(\`Error: \${error.message}\`, 'agent');
         } finally {
             inputField.disabled = false;

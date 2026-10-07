@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentForge | Enterprise AI Agent Engine</title>
+  <title>MeterMind | Enterprise AI Agent Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -40,7 +40,7 @@
         <div class="bg-blue-600/20 text-blue-400 p-2 rounded-xl border border-blue-500/30">
           <i data-lucide="bot" class="w-6 h-6"></i>
         </div>
-        <span class="text-xl font-bold tracking-tight">AgentForge</span>
+        <span class="text-xl font-bold tracking-tight">MeterMind</span>
       </div>
       <nav class="hidden md:flex items-center gap-8 font-medium text-sm text-slate-300">
         <a href="#features" class="hover:text-white transition">Pay-As-You-Go</a>
@@ -202,7 +202,7 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-20">
           <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Zero Subscriptions. Micro-dollar Metering.</h2>
-          <p class="text-slate-400 text-lg max-w-2xl mx-auto">We ripped out the traditional SaaS pricing model. With AgentForge, you get enterprise-grade agentic infrastructure and you only pay for exactly what your agents think.</p>
+          <p class="text-slate-400 text-lg max-w-2xl mx-auto">We ripped out the traditional SaaS pricing model. With MeterMind, you get enterprise-grade agentic infrastructure and you only pay for exactly what your agents think.</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
@@ -261,7 +261,7 @@
     <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-2 text-slate-400">
         <i data-lucide="bot" class="w-5 h-5"></i>
-        <span class="font-semibold text-slate-300">AgentForge</span> &copy; 2026
+        <span class="font-semibold text-slate-300">MeterMind</span> &copy; 2026
       </div>
       <div class="text-slate-500 text-sm">
         Enterprise AI Architecture. Built for scale.
@@ -372,7 +372,7 @@
       }
     }
 
-    function sendMessage() {
+    async function sendMessage() {
       const input = document.getElementById('chat-input');
       const text = input.value.trim();
       if (!text) return;
@@ -383,7 +383,7 @@
       messagesDiv.innerHTML += `
         <div class="flex gap-3 max-w-[80%] ml-auto justify-end">
           <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed">
-            ${text}
+            ${escapeHtml(text)}
           </div>
           <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
             <i data-lucide="user" class="w-4 h-4 text-slate-300"></i>
@@ -397,42 +397,59 @@
       
       // Show typing indicator
       const typingId = 'typing-' + Date.now();
-      setTimeout(() => {
+      messagesDiv.innerHTML += `
+        <div id="${typingId}" class="flex gap-3 max-w-[80%]">
+          <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
+          </div>
+          <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2">
+            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
+            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
+            <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+          </div>
+        </div>
+      `;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      lucide.createIcons();
+      
+      try {
+        const res = await fetch('/api/v1/agents/demo/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agent_type: currentAgent,
+            message: text
+          })
+        });
+        
+        let reply = "Sorry, I couldn't process that.";
+        if (res.ok) {
+          const data = await res.json();
+          reply = data.reply;
+        }
+
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+        
         messagesDiv.innerHTML += `
-          <div id="${typingId}" class="flex gap-3 max-w-[80%]">
+          <div class="flex gap-3 max-w-[80%]">
             <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
               <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
             </div>
-            <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm flex items-center gap-2">
-              <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce"></span>
-              <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
-              <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
-            </div>
+            <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(reply)}</div>
           </div>
         `;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         lucide.createIcons();
-        
-        // Add bot response
-        setTimeout(() => {
-          const typingEl = document.getElementById(typingId);
-          if (typingEl) typingEl.remove();
-          
-          const agent = agents[currentAgent];
-          const randomResponse = agent.responses[Math.floor(Math.random() * agent.responses.length)];
-          
-          messagesDiv.innerHTML += `
-            <div class="flex gap-3 max-w-[80%]">
-              <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0">
-                <i data-lucide="bot" class="w-4 h-4 text-slate-400"></i>
-              </div>
-              <div class="bg-slate-800 text-slate-200 px-4 py-3 rounded-2xl rounded-tl-sm text-sm leading-relaxed whitespace-pre-wrap">${randomResponse}</div>
-            </div>
-          `;
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
-          lucide.createIcons();
-        }, 1000 + Math.random() * 1000);
-      }, 300);
+      } catch (err) {
+        const typingEl = document.getElementById(typingId);
+        if (typingEl) typingEl.remove();
+      }
+    }
+    
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
     }
   </script>
 </body>

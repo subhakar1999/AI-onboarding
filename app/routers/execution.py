@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
+from pydantic import BaseModel
 from app.database import get_db
 from app.models.agent import Agent
 from app.models.billing import UsageRecord
@@ -10,6 +11,46 @@ from app.services.runtime import AgentExecutionRuntime
 from app.services.auth import get_authenticated_agent_caller
 
 router = APIRouter(prefix="/agents", tags=["Agent Execution"])
+
+class DemoAgentConfig:
+    def __init__(self, name, department, model_name, system_prompt):
+        self.name = name
+        self.department = department
+        self.model_name = model_name
+        self.system_prompt = system_prompt
+        self.enable_pii_shield = False
+        self.temperature = 0.5
+
+DEMO_AGENTS = {
+    "support": DemoAgentConfig("Customer Support", "Demo", "gpt-4o-mini", "You are a helpful customer support agent."),
+    "data": DemoAgentConfig("Data Analyst", "Demo", "gpt-4o", "You are a senior data analyst. You write SQL and explain data trends clearly."),
+    "voice": DemoAgentConfig("Voice Assistant", "Demo", "gpt-4o-mini", "You are a voice assistant that is great at transcribing and summarizing meetings."),
+    "code": DemoAgentConfig("Code Reviewer", "Demo", "gpt-4o", "You are an expert Code Reviewer. You look for security flaws, bugs, and suggest improvements.")
+}
+
+class DemoExecuteRequest(BaseModel):
+    agent_type: str
+    message: str
+
+class MockMessage:
+    def __init__(self, role, content):
+        self.role = role
+        self.content = content
+
+@router.post("/demo/execute")
+async def execute_demo_agent(payload: DemoExecuteRequest):
+    if payload.agent_type not in DEMO_AGENTS:
+        raise HTTPException(status_code=404, detail="Demo agent not found.")
+    
+    agent = DEMO_AGENTS[payload.agent_type]
+    messages = [MockMessage(role="user", content=payload.message)]
+    
+    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=messages)
+    
+    return {
+        "reply": exec_result["output_text"],
+        "cost_usd": float(exec_result["cost_usd"])
+    }
 
 # In app/routers/execution.py, update the endpoint signature:
 @router.post("/{agent_id}/execute", response_model=ExecuteResponse)

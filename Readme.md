@@ -1,6 +1,6 @@
-# AgentForge Enterprise Engine
+# MeterMind Enterprise Engine
 
-AgentForge Enterprise Engine is a robust, production-ready FastAPI backend and web platform for creating, managing, and executing AI Agents. It provides a complete end-to-end ecosystem from a beautiful public-facing landing page to an internal Agent Studio with enterprise-grade financial and security guardrails.
+MeterMind Enterprise Engine is a robust, production-ready FastAPI backend and web platform for creating, managing, and executing AI Agents. It provides a complete end-to-end ecosystem from a beautiful public-facing landing page to an internal Agent Studio with enterprise-grade financial and security guardrails.
 
 ## ✨ Key Functionalities & Features
 
@@ -34,7 +34,7 @@ AgentForge Enterprise Engine is a robust, production-ready FastAPI backend and w
 ## 📂 Directory Structure
 
 ```text
-agentforge-backend/
+metermind-backend/
 ├── app/
 │   ├── main.py                   # FastAPI entrypoint, lifespan, CORS, healthz
 │   ├── config.py                 # Pydantic v2 settings & environment variables

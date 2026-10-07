@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AgentForge Enterprise Engine"
+    PROJECT_NAME: str = "MeterMind Enterprise Engine"
     ENV: str = "production"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = "noreply@agentforge.local"
+    SMTP_FROM: str = "noreply@metermind.local"
 
     # Cost Engine Catalog (USD per 1 Million Tokens)
     MODEL_RATES: dict = {

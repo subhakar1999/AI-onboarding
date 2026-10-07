@@ -8,7 +8,7 @@ from app.database import AsyncSessionLocal
 
 async def verify_widget_installation(project_id: str, max_retries: int = 3):
     """
-    Background task to verify that the customer has installed the AgentForge widget.
+    Background task to verify that the customer has installed the MeterMind widget.
     It scrapes the registered domain and checks for <script src="...widget.js" data-widget-key="...">.
     """
     async with AsyncSessionLocal() as db:

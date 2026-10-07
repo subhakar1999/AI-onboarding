@@ -22,11 +22,11 @@ def send_magic_link_email(email: str, link: str):
     if settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD:
         try:
             msg = EmailMessage()
-            msg.set_content(f"Click the link below to securely sign into AgentForge:
+            msg.set_content(f"""Click the link below to securely sign into AgentForge:
 
 {link}
 
-This link expires in 15 minutes.")
+This link expires in 15 minutes.""")
             msg['Subject'] = 'Your AgentForge Magic Link'
             msg['From'] = settings.SMTP_FROM
             msg['To'] = email

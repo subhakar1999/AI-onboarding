@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.config import settings
 from app.database import engine, Base
-from app.routers import agent, execution, finops, auth, inquiries, managed
+from app.routers import agent, execution, finops, auth, inquiries, managed, knowledge
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.include_router(finops.router, prefix=settings.API_V1_PREFIX)
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(inquiries.router, prefix=settings.API_V1_PREFIX)
 app.include_router(managed.router, prefix=settings.API_V1_PREFIX)
+app.include_router(knowledge.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/healthz", tags=["System Health"])
 async def health_check():
@@ -72,3 +73,10 @@ async def serve_auth():
     if os.path.exists(auth_file):
         return FileResponse(auth_file)
     return {"message": "Auth frontend not found. Place auth.html inside app/static/"}
+
+@app.get("/chat/{agent_id}", include_in_schema=False)
+async def serve_chat_portal(agent_id: str):
+    chat_file = os.path.join(STATIC_DIR, "chat.html")
+    if os.path.exists(chat_file):
+        return FileResponse(chat_file)
+    return {"message": "Chat portal frontend not found. Place chat.html inside app/static/"}

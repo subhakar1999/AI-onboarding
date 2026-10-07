@@ -72,7 +72,7 @@ async def execute_agent(
         await db.commit()
         raise HTTPException(status_code=402, detail="Agent monthly budget breached.")
 
-    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=payload.messages)
+    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=payload.messages, db=db)
 
     # Save to FinOps ledger
     usage_entry = UsageRecord(

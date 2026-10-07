@@ -160,7 +160,7 @@ async def execute_widget(
     messages = [MockMessage(role="user", content=payload.message)]
     
     # Run Agent
-    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=messages)
+    exec_result = await AgentExecutionRuntime.run(agent=agent, user_messages=messages, db=db)
     
     # Ledger the usage
     usage_entry = UsageRecord(

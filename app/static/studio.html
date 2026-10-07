@@ -111,6 +111,22 @@
           <div class="text-xs text-slate-400 text-center py-8">No web deployments active.</div>
         </div>
       </div>
+
+      <!-- Customer Leads & Inquiries Inbox -->
+      <div class="bg-slate-850 border border-slate-800 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold flex items-center gap-2">
+            <i data-lucide="inbox" class="w-4 h-4 text-emerald-400"></i> Customer Leads & Inquiries
+            <span id="leads-count-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">0</span>
+          </h3>
+          <button onclick="fetchLeads()" class="text-slate-400 hover:text-white p-1 rounded">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="leads-list" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+          <div class="text-xs text-slate-400 text-center py-6">No leads captured yet.</div>
+        </div>
+      </div>
     </section>
 
     <!-- Right Column: Interactive Sandbox & Testing (5 cols) -->
@@ -346,6 +362,7 @@
       await fetchFinops();
       await fetchFleet();
       await fetchDeployments();
+      await fetchLeads();
     }
 
     async function checkHealth() {
@@ -388,19 +405,35 @@
 
         container.innerHTML = agentsList.map(a => `
           <div onclick="selectAgent('${a.id}')" class="p-3.5 rounded-lg border transition cursor-pointer flex items-center justify-between ${activeAgentId === a.id ? 'border-blue-500 bg-blue-950/20' : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'}">
-            <div>
+            <div class="flex-1 min-w-0 mr-3">
               <div class="flex items-center gap-2">
-                <span class="font-semibold text-xs text-slate-100">${escapeHtml(a.name)}</span>
+                <span class="font-semibold text-xs text-slate-100 truncate">${escapeHtml(a.name)}</span>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">${escapeHtml(a.model_name)}</span>
               </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(a.department)}</p>
+              <div class="flex items-center gap-3 mt-1.5">
+                <span class="text-[11px] text-slate-400">${escapeHtml(a.department)}</span>
+                <!-- Product Delivery Quick Actions -->
+                <div class="flex items-center gap-1.5">
+                  <a href="/chat/${a.id}" target="_blank" onclick="event.stopPropagation()" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-blue-400 transition" title="Open Hosted Chat Portal">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                  </a>
+                  <button onclick="event.stopPropagation(); openKnowledgeModal('${a.id}', '${escapeHtml(a.name)}')" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-purple-400 transition" title="Knowledge Base (RAG)">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button onclick="event.stopPropagation(); openApiModal('${a.id}', '${escapeHtml(a.name)}')" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition" title="Developer API Integration">
+                    <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="text-right font-mono text-xs">
+            <div class="text-right font-mono text-xs flex-shrink-0">
               <span class="text-slate-200">$${parseFloat(a.current_spend_usd).toFixed(4)}</span>
               <span class="text-slate-500 text-[10px]"> / $${parseFloat(a.monthly_budget_usd).toFixed(0)}</span>
             </div>
           </div>
         `).join('');
+
+        lucide.createIcons();
 
         if (!activeAgentId && agentsList.length > 0) {
           selectAgent(agentsList[0].id);
@@ -550,9 +583,197 @@ async function handleContactSubmit(e) {
       }
     }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    // Leads Inbox
+    async function fetchLeads() {
+      const container = document.getElementById('leads-list');
+      const badge = document.getElementById('leads-count-badge');
+      if (!container || !badge) return;
+      try {
+        const res = await fetch('/api/v1/inquiries');
+        if (!res.ok) throw new Error('Failed to load leads');
+        const leads = await res.json();
+        badge.textContent = leads.length;
+
+        if (leads.length === 0) {
+          container.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">No leads captured yet.</div>`;
+          return;
+        }
+
+        container.innerHTML = leads.map(l => `
+          <div class="p-3 rounded-lg border border-slate-800 bg-slate-900/50 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-xs text-slate-100">${escapeHtml(l.name)}</span>
+              <span class="text-[10px] text-slate-500 font-mono">${escapeHtml(l.created_at)}</span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-blue-400">
+              <i data-lucide="mail" class="w-3 h-3"></i>
+              <a href="mailto:${escapeHtml(l.email)}" class="hover:underline">${escapeHtml(l.email)}</a>
+              ${l.phone ? `<span class="text-slate-600">&bull;</span><span class="text-slate-400">${escapeHtml(l.phone)}</span>` : ''}
+            </div>
+            <p class="text-[11px] text-slate-300 bg-slate-950/60 p-2 rounded border border-slate-850 mt-1 leading-relaxed">
+              ${escapeHtml(l.message)}
+            </p>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-400 py-4 text-center">Failed to load leads: ${err.message}</div>`;
+      }
+    }
+
+    // Knowledge Base (RAG) Management
+    let currentKnowledgeAgentId = null;
+
+    function openKnowledgeModal(agentId, agentName) {
+      currentKnowledgeAgentId = agentId;
+      document.getElementById('kb-agent-title').textContent = agentName;
+      toggleModal('knowledge-modal', true);
+      loadKnowledgeChunks();
+    }
+
+    async function loadKnowledgeChunks() {
+      const listEl = document.getElementById('kb-chunks-list');
+      const countEl = document.getElementById('kb-total-chunks');
+      listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Loading indexed chunks...</div>`;
+
+      try {
+        const res = await fetch(`/api/v1/agents/${currentKnowledgeAgentId}/knowledge`);
+        if (!res.ok) throw new Error("Failed to load chunks");
+        const data = await res.json();
+        countEl.textContent = `${data.total_chunks} Chunks Indexed`;
+
+        if (data.chunks.length === 0) {
+          listEl.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">No knowledge chunks indexed yet. Paste text or upload a doc above.</div>`;
+          return;
+        }
+
+        listEl.innerHTML = data.chunks.map(c => `
+          <div class="p-2.5 rounded border border-slate-800 bg-slate-950/70 text-xs flex items-start justify-between gap-2">
+            <div>
+              <p class="text-slate-300 leading-relaxed">${escapeHtml(c.content)}</p>
+              <span class="text-[10px] text-slate-500 font-mono mt-1 block">${escapeHtml(c.created_at)}</span>
+            </div>
+            <button onclick="handleDeleteChunk('${c.id}')" class="text-slate-500 hover:text-red-400 p-1 transition" title="Delete chunk">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `).join('');
+        lucide.createIcons();
+      } catch (err) {
+        listEl.innerHTML = `<div class="text-xs text-red-400 text-center py-4">${err.message}</div>`;
+      }
+    }
+
+    async function handleIngestText(e) {
+      e.preventDefault();
+      const title = document.getElementById('kb-doc-title').value;
+      const content = document.getElementById('kb-doc-content').value;
+
+      try {
+        const res = await fetch(`/api/v1/agents/${currentKnowledgeAgentId}/knowledge/text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Ingestion failed");
+        alert(data.message);
+        document.getElementById('kb-doc-content').value = '';
+        loadKnowledgeChunks();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function handleUploadFile(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('kb-file-input');
+      if (!fileInput.files.length) return;
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch(`/api/v1/agents/${currentKnowledgeAgentId}/knowledge/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Upload failed");
+        alert(data.message);
+        fileInput.value = '';
+        loadKnowledgeChunks();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function handleDeleteChunk(chunkId) {
+      if (!confirm("Are you sure you want to delete this knowledge chunk?")) return;
+      try {
+        const res = await fetch(`/api/v1/agents/${currentKnowledgeAgentId}/knowledge/${chunkId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error("Delete failed");
+        loadKnowledgeChunks();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Developer API Hub Modal
+    let currentApiAgentId = null;
+
+    function openApiModal(agentId, agentName) {
+      currentApiAgentId = agentId;
+      document.getElementById('api-agent-title').textContent = agentName;
+      document.getElementById('api-agent-id').textContent = agentId;
+
+      const baseUrl = window.location.origin;
+      const curlCode = `curl -X POST "${baseUrl}/api/v1/agents/${agentId}/execute" \\
+  -H "Authorization: Bearer YOUR_AF_LIVE_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Analyze our Q3 sales figures"}
+    ]
+  }'`;
+
+      const pythonCode = `import requests
+
+url = "${baseUrl}/api/v1/agents/${agentId}/execute"
+headers = {
+    "Authorization": "Bearer YOUR_AF_LIVE_KEY",
+    "Content-Type": "application/json"
+}
+payload = {
+    "messages": [
+        {"role": "user", "content": "Hello agent!"}
+    ]
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json()["response"])`;
+
+      document.getElementById('api-curl-snippet').value = curlCode;
+      document.getElementById('api-python-snippet').value = pythonCode;
+      toggleModal('api-hub-modal', true);
+    }
+
+    async function handleRegenerateKey() {
+      if (!confirm("Regenerating this key will immediately revoke access for previous callers. Continue?")) return;
+      try {
+        const res = await fetch(`/api/v1/agents/${currentApiAgentId}/regenerate-key`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Regeneration failed");
+        prompt("Copy your new live API key now. Store it safely!", data.raw_api_key);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function copyFieldValue(fieldId) {
+      const field = document.getElementById(fieldId);
+      navigator.clipboard.writeText(field.value);
+      alert("Code copied to clipboard!");
     }
 
     document.addEventListener('DOMContentLoaded', init);
@@ -655,5 +876,118 @@ async function handleContactSubmit(e) {
     </form>
   </div>
 </div>
+  <!-- Knowledge Base (RAG) Manager Modal -->
+  <div id="knowledge-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-4">
+    <div class="bg-slate-850 border border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <h3 class="text-base font-bold flex items-center gap-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-purple-400"></i> Knowledge Base & RAG Grounding
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Agent: <span id="kb-agent-title" class="text-slate-200 font-semibold"></span></p>
+        </div>
+        <button onclick="toggleModal('knowledge-modal', false)" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 flex-1 overflow-y-auto pr-1 text-xs">
+        <!-- Ingestion Form (Text) -->
+        <form onsubmit="handleIngestText(event)" class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+          <span class="font-semibold text-slate-200 flex items-center gap-1.5 mb-1">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-400"></i> Ingest Document Text / FAQ
+          </span>
+          <input required id="kb-doc-title" type="text" placeholder="Document Title (e.g. Refund Policy, Pricing Guide)" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-purple-500 text-slate-200" />
+          <textarea required id="kb-doc-content" rows="3" placeholder="Paste your company policies, FAQs, or support articles here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-purple-500 text-slate-200"></textarea>
+          <div class="flex justify-end">
+            <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Ingest & Index
+            </button>
+          </div>
+        </form>
+
+        <!-- Ingestion Form (File Upload) -->
+        <form onsubmit="handleUploadFile(event)" class="space-y-2 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+          <span class="font-semibold text-slate-200 flex items-center gap-1.5 mb-1">
+            <i data-lucide="paperclip" class="w-3.5 h-3.5 text-emerald-400"></i> Upload Document File (.txt, .md, .json)
+          </span>
+          <div class="flex gap-2">
+            <input required id="kb-file-input" type="file" accept=".txt,.md,.json,.csv" class="flex-1 text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer" />
+            <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload
+            </button>
+          </div>
+        </form>
+
+        <!-- Chunks List -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-semibold text-slate-300">Indexed Knowledge Chunks</span>
+            <span id="kb-total-chunks" class="text-[11px] font-mono text-purple-400 bg-purple-950/40 border border-purple-500/20 px-2 py-0.5 rounded">0 Chunks</span>
+          </div>
+          <div id="kb-chunks-list" class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+            <!-- Chunks dynamically loaded -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-slate-800">
+        <button type="button" onclick="toggleModal('knowledge-modal', false)" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer API Hub Modal -->
+  <div id="api-hub-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-4">
+    <div class="bg-slate-850 border border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <h3 class="text-base font-bold flex items-center gap-2">
+            <i data-lucide="code-2" class="w-4 h-4 text-emerald-400"></i> Developer API Integration Hub
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Agent: <span id="api-agent-title" class="text-slate-200 font-semibold"></span></p>
+        </div>
+        <button onclick="toggleModal('api-hub-modal', false)" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 flex-1 overflow-y-auto pr-1 text-xs">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <span class="text-slate-400 text-[11px]">Agent Unique ID:</span>
+            <div id="api-agent-id" class="font-mono text-slate-200 text-xs font-semibold mt-0.5"></div>
+          </div>
+          <button onclick="handleRegenerateKey()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+            <i data-lucide="key" class="w-3.5 h-3.5"></i> Regenerate API Key
+          </button>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="font-semibold text-slate-300">cURL Example</span>
+            <button onclick="copyFieldValue('api-curl-snippet')" class="text-slate-400 hover:text-white flex items-center gap-1 text-[11px]">
+              <i data-lucide="copy" class="w-3 h-3"></i> Copy
+            </button>
+          </div>
+          <textarea id="api-curl-snippet" readonly rows="5" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] font-mono text-slate-300 outline-none" style="resize:none;"></textarea>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="font-semibold text-slate-300">Python Example (requests)</span>
+            <button onclick="copyFieldValue('api-python-snippet')" class="text-slate-400 hover:text-white flex items-center gap-1 text-[11px]">
+              <i data-lucide="copy" class="w-3 h-3"></i> Copy
+            </button>
+          </div>
+          <textarea id="api-python-snippet" readonly rows="7" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] font-mono text-slate-300 outline-none" style="resize:none;"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-slate-800">
+        <button type="button" onclick="toggleModal('api-hub-modal', false)" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs">Close</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

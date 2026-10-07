@@ -28,3 +28,4 @@ class AgentKnowledgeChunk(Base):
             postgresql_ops={"embedding": "vector_cosine_ops"}
         ),
     )
+

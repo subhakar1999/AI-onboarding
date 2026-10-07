@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentForge | Authentication</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+            slate: { 850: '#0f172a', 900: '#020617', 950: '#000000' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .bg-pattern {
+      background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex selection:bg-blue-500/30">
+
+  <!-- Left Side: Branding -->
+  <div class="hidden lg:flex flex-1 bg-pattern flex-col justify-center items-center relative overflow-hidden border-r border-slate-800">
+    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+    <div class="relative z-10 p-12 max-w-lg text-center">
+      <div class="inline-flex bg-blue-600/20 text-blue-400 p-4 rounded-2xl border border-blue-500/30 mb-8 shadow-2xl shadow-blue-900/20">
+        <i data-lucide="bot" class="w-12 h-12"></i>
+      </div>
+      <h1 class="text-4xl font-extrabold mb-4 tracking-tight">AgentForge Engine</h1>
+      <p class="text-slate-400 text-lg leading-relaxed">
+        The ultimate enterprise operating system for deploying, scaling, and tracking autonomous AI agents.
+      </p>
+    </div>
+  </div>
+
+  <!-- Right Side: Auth Forms -->
+  <div class="flex-1 flex flex-col justify-center items-center p-6 relative">
+    <a href="/" class="absolute top-8 left-8 text-slate-400 hover:text-white flex items-center gap-2 transition text-sm font-medium">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Home
+    </a>
+
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+      
+      <!-- Tabs -->
+      <div class="flex border-b border-slate-800">
+        <button onclick="switchTab('login')" id="tab-login" class="flex-1 py-4 text-sm font-bold text-blue-400 border-b-2 border-blue-500 transition">Sign In</button>
+        <button onclick="switchTab('signup')" id="tab-signup" class="flex-1 py-4 text-sm font-bold text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition">Create Account</button>
+      </div>
+
+      <div class="p-8">
+        
+        <!-- Login Form -->
+        <form id="form-login" onsubmit="handleAuth(event, 'login')" class="space-y-5">
+          <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold text-white">Welcome back</h2>
+            <p class="text-slate-400 text-sm mt-1">Enter your details to access the studio.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1.5">Email address</label>
+            <div class="relative">
+              <i data-lucide="mail" class="absolute left-3 top-3 w-5 h-5 text-slate-500"></i>
+              <input required type="email" placeholder="admin@enterprise.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 text-white placeholder-slate-600 transition" />
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-sm font-medium text-slate-300">Password</label>
+              <a href="#" class="text-xs text-blue-400 hover:text-blue-300">Forgot password?</a>
+            </div>
+            <div class="relative">
+              <i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-slate-500"></i>
+              <input required type="password" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 text-white placeholder-slate-600 transition" />
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-900/50 mt-2 flex justify-center items-center gap-2">
+            Sign In <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+
+        <!-- Signup Form -->
+        <form id="form-signup" onsubmit="handleAuth(event, 'signup')" class="space-y-5 hidden">
+          <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold text-white">Create an account</h2>
+            <p class="text-slate-400 text-sm mt-1">Start deploying enterprise AI agents.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1.5">Full Name</label>
+            <div class="relative">
+              <i data-lucide="user" class="absolute left-3 top-3 w-5 h-5 text-slate-500"></i>
+              <input required type="text" placeholder="John Doe" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 text-white placeholder-slate-600 transition" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1.5">Work Email</label>
+            <div class="relative">
+              <i data-lucide="mail" class="absolute left-3 top-3 w-5 h-5 text-slate-500"></i>
+              <input required type="email" placeholder="john@enterprise.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 text-white placeholder-slate-600 transition" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+            <div class="relative">
+              <i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-slate-500"></i>
+              <input required type="password" placeholder="Create a secure password" class="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 text-white placeholder-slate-600 transition" />
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-emerald-900/50 mt-2 flex justify-center items-center gap-2">
+            Create Account <i data-lucide="check" class="w-4 h-4"></i>
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function switchTab(tab) {
+      const loginForm = document.getElementById('form-login');
+      const signupForm = document.getElementById('form-signup');
+      const tabLogin = document.getElementById('tab-login');
+      const tabSignup = document.getElementById('tab-signup');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        signupForm.classList.add('hidden');
+        
+        tabLogin.classList.replace('text-slate-400', 'text-blue-400');
+        tabLogin.classList.replace('border-transparent', 'border-blue-500');
+        
+        tabSignup.classList.replace('text-blue-400', 'text-slate-400');
+        tabSignup.classList.replace('border-blue-500', 'border-transparent');
+      } else {
+        signupForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        
+        tabSignup.classList.replace('text-slate-400', 'text-blue-400');
+        tabSignup.classList.replace('border-transparent', 'border-blue-500');
+        
+        tabLogin.classList.replace('text-blue-400', 'text-slate-400');
+        tabLogin.classList.replace('border-blue-500', 'border-transparent');
+      }
+    }
+
+    async function handleAuth(e, type) {
+      e.preventDefault();
+      let payload = {};
+      if (type === 'login') {
+        payload.email = e.target.querySelector('input[type="email"]').value;
+      } else {
+        payload.email = e.target.querySelector('input[type="email"]').value;
+        payload.full_name = e.target.querySelector('input[type="text"]').value;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Sending Magic Link...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/v1/auth/magic-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          alert("Magic Link sent! Please check your email (or terminal logs) to sign in.");
+          e.target.reset();
+        } else {
+          const data = await res.json();
+          alert("Error: " + (data.detail || "Could not send link"));
+        }
+      } catch (err) {
+        alert("Network error.");
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
+

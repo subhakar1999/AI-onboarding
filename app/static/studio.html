@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentForge Enterprise Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+            slate: { 850: '#0f172a', 900: '#020617' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3 hover:opacity-80 transition cursor-pointer">
+      <div class="bg-blue-600/20 text-blue-400 p-2 rounded-lg border border-blue-500/30">
+        <i data-lucide="bot" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold leading-none tracking-tight">AgentForge</h1>
+        <span class="text-xs text-slate-400">Enterprise Studio & FinOps Gateway</span>
+      </div>
+    </a>
+    <div class="flex items-center gap-6">
+      <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        API Status: <span id="api-status" class="text-slate-200 font-semibold">Connecting...</span>
+      </div>
+      <button onclick="openModal()" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition">
+        <i data-lucide="plus" class="w-4 h-4"></i> New Agent
+      </button>
+      <div class="h-6 w-px bg-slate-800"></div>
+      <button onclick="handleLogout()" class="text-slate-400 hover:text-white text-xs font-medium flex items-center gap-1.5 transition">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- Left Column: Fleet & FinOps (7 cols) -->
+    <section class="lg:col-span-7 space-y-6">
+      <!-- FinOps Summary Cards -->
+      <div class="grid grid-cols-3 gap-4">
+        <div class="bg-slate-850 p-4 rounded-xl border border-slate-800">
+          <p class="text-xs font-medium text-slate-400">Monthly Spend</p>
+          <h2 id="total-spend" class="text-xl font-bold text-slate-100 mt-1">$0.00</h2>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div id="spend-bar" class="bg-blue-500 h-full w-[0%] transition-all"></div>
+          </div>
+        </div>
+        <div class="bg-slate-850 p-4 rounded-xl border border-slate-800">
+          <p class="text-xs font-medium text-slate-400">Allocated Budget</p>
+          <h2 id="total-budget" class="text-xl font-bold text-slate-100 mt-1">$0.00</h2>
+          <p class="text-[11px] text-slate-400 mt-3">Monthly Cap</p>
+        </div>
+        <div class="bg-slate-850 p-4 rounded-xl border border-slate-800">
+          <p class="text-xs font-medium text-slate-400">Tokens Processed</p>
+          <h2 id="total-tokens" class="text-xl font-bold text-slate-100 mt-1">0</h2>
+          <p class="text-[11px] text-emerald-400 mt-3">All Active Agents</p>
+        </div>
+      </div>
+
+      <!-- Agent Fleet Grid -->
+      <div class="bg-slate-850 border border-slate-800 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold flex items-center gap-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> Active Agents
+          </h3>
+          <button onclick="fetchFleet()" class="text-slate-400 hover:text-white p-1 rounded">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="fleet-list" class="space-y-3">
+          <div class="text-xs text-slate-400 text-center py-8">Loading agent catalog...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Interactive Sandbox & Testing (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col bg-slate-850 border border-slate-800 rounded-xl p-5 h-[620px]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+        <div>
+          <h3 class="text-sm font-semibold flex items-center gap-2">
+            <i data-lucide="terminal" class="w-4 h-4 text-emerald-400"></i> Agent Playground
+          </h3>
+          <p id="selected-agent-label" class="text-xs text-slate-400 mt-0.5">Select an agent to chat</p>
+        </div>
+        <span id="selected-agent-cost" class="text-xs font-mono bg-slate-900 border border-slate-800 px-2.5 py-1 rounded text-slate-300">
+          $0.000000
+        </span>
+      </div>
+
+      <!-- Chat Log -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+        <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-slate-400">
+          Select an agent from the fleet list on the left and enter your test query below.
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form id="chat-form" onsubmit="sendMessage(event)" class="pt-3 border-t border-slate-800 flex gap-2">
+        <input 
+          id="user-input" 
+          type="text" 
+          placeholder="Ask the active agent..." 
+          disabled
+          class="flex-1 bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg px-3 py-2 text-xs outline-none text-slate-100 disabled:opacity-50"
+        />
+        <button 
+          id="send-btn" 
+          type="submit" 
+          disabled
+          class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center transition"
+        >
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Create Agent Modal -->
+  <div id="create-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-850 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i> Create Enterprise Agent
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form onsubmit="handleCreateAgent(event)" class="space-y-3.5 text-xs">
+        
+        <!-- Templates Section -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-2">Example Templates <span class="text-slate-500 font-normal">(Click to auto-fill)</span></label>
+          <div class="grid grid-cols-2 gap-3 mb-2">
+            <div onclick="applyTemplate('support')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-lg p-2.5 cursor-pointer transition">
+              <div class="text-xs font-bold text-white mb-0.5">L1 Support Bot</div>
+              <div class="text-[10px] text-slate-400 flex justify-between">
+                <span>GPT-4o-mini</span>
+                <span class="text-emerald-400 font-mono">Est: $10/mo</span>
+              </div>
+            </div>
+            <div onclick="applyTemplate('analyst')" class="bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-lg p-2.5 cursor-pointer transition">
+              <div class="text-xs font-bold text-white mb-0.5">Financial Analyst</div>
+              <div class="text-[10px] text-slate-400 flex justify-between">
+                <span>Claude 3.5</span>
+                <span class="text-orange-400 font-mono">Est: $150/mo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px w-full bg-slate-800 my-2"></div>
+
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Agent Name</label>
+          <input required id="modal-name" type="text" placeholder="e.g. SOC Triage Copilot" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Cost Center / Dept</label>
+            <input required id="modal-dept" type="text" placeholder="e.g. Cloud Security" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Model Selection</label>
+            <select id="modal-model" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500 text-slate-200">
+              <option value="gpt-4o">GPT-4o ($2.50 / $10.00)</option>
+              <option value="gpt-4o-mini" selected>GPT-4o-mini ($0.15 / $0.60)</option>
+              <option value="claude-3-5-sonnet">Claude 3.5 Sonnet ($3.00 / $15.00)</option>
+              <option value="meta-llama-3-3-70b">Llama 3.3 70B ($0.40 / $0.80)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">System Instructions / Persona</label>
+          <textarea required id="modal-prompt" rows="3" placeholder="You are an enterprise assistant responsible for..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Monthly Budget Limit ($)</label>
+            <input required id="modal-budget" type="number" step="0.01" value="50.00" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Guardrails</label>
+            <label class="flex items-center gap-2 mt-2 cursor-pointer">
+              <input id="modal-pii" type="checkbox" checked class="rounded border-slate-800 text-blue-600 focus:ring-0">
+              <span class="text-slate-300">Sanitize PII & Secrets</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition">Deploy Agent</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let activeAgentId = null;
+    let agentsList = [];
+
+    function applyTemplate(type) {
+      if (type === 'support') {
+        document.getElementById('modal-name').value = 'L1 Support Copilot';
+        document.getElementById('modal-dept').value = 'Customer Success';
+        document.getElementById('modal-model').value = 'gpt-4o-mini';
+        document.getElementById('modal-prompt').value = 'You are a helpful customer support agent. Answer questions politely and concisely. Always ask if they need further assistance.';
+        document.getElementById('modal-budget').value = '10.00';
+      } else if (type === 'analyst') {
+        document.getElementById('modal-name').value = 'Q3 Earnings Analyst';
+        document.getElementById('modal-dept').value = 'Finance';
+        document.getElementById('modal-model').value = 'claude-3-5-sonnet';
+        document.getElementById('modal-prompt').value = 'You are a senior financial analyst. Evaluate reports critically and highlight EBITDA anomalies.';
+        document.getElementById('modal-budget').value = '150.00';
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        await fetch('/api/v1/auth/logout', { method: 'POST' });
+      } catch(e) {}
+      window.location.href = '/';
+    }
+
+    async function init() {
+      lucide.createIcons();
+      await checkHealth();
+      await fetchFinops();
+      await fetchFleet();
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/healthz');
+        const data = await res.json();
+        document.getElementById('api-status').textContent = data.status === 'HEALTHY' ? 'Healthy' : 'Degraded';
+      } catch (err) {
+        document.getElementById('api-status').textContent = 'Disconnected';
+      }
+    }
+
+    async function fetchFinops() {
+      try {
+        const res = await fetch('/api/v1/finops/summary');
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('total-spend').textContent = `$${data.total_spend_usd.toFixed(2)}`;
+        document.getElementById('total-budget').textContent = `$${data.total_budget_usd.toFixed(2)}`;
+        document.getElementById('total-tokens').textContent = data.total_tokens_consumed.toLocaleString();
+        
+        const pct = data.total_budget_usd > 0 ? (data.total_spend_usd / data.total_budget_usd) * 100 : 0;
+        document.getElementById('spend-bar').style.width = `${Math.min(pct, 100)}%`;
+      } catch (e) {
+        console.warn('FinOps data unavailable', e);
+      }
+    }
+
+    async function fetchFleet() {
+      const container = document.getElementById('fleet-list');
+      try {
+        const res = await fetch('/api/v1/agents');
+        if (!res.ok) throw new Error('API error');
+        agentsList = await res.json();
+        
+        if (agentsList.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">No agents registered yet. Click <strong>+ New Agent</strong> to start.</div>`;
+          return;
+        }
+
+        container.innerHTML = agentsList.map(a => `
+          <div onclick="selectAgent('${a.id}')" class="p-3.5 rounded-lg border transition cursor-pointer flex items-center justify-between ${activeAgentId === a.id ? 'border-blue-500 bg-blue-950/20' : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'}">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-xs text-slate-100">${escapeHtml(a.name)}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">${escapeHtml(a.model_name)}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(a.department)}</p>
+            </div>
+            <div class="text-right font-mono text-xs">
+              <span class="text-slate-200">$${parseFloat(a.current_spend_usd).toFixed(4)}</span>
+              <span class="text-slate-500 text-[10px]"> / $${parseFloat(a.monthly_budget_usd).toFixed(0)}</span>
+            </div>
+          </div>
+        `).join('');
+
+        if (!activeAgentId && agentsList.length > 0) {
+          selectAgent(agentsList[0].id);
+        }
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-400 py-4 text-center">Failed to load agent catalog: ${err.message}</div>`;
+      }
+    }
+
+    function selectAgent(id) {
+      activeAgentId = id;
+      const agent = agentsList.find(a => a.id === id);
+      if (!agent) return;
+
+      document.getElementById('selected-agent-label').textContent = `${agent.name} (${agent.department})`;
+      document.getElementById('selected-agent-cost').textContent = `Spend: $${parseFloat(agent.current_spend_usd).toFixed(4)}`;
+      document.getElementById('user-input').disabled = false;
+      document.getElementById('send-btn').disabled = false;
+
+      const chat = document.getElementById('chat-messages');
+      chat.innerHTML = `<div class="bg-blue-950/20 border border-blue-800/40 p-3 rounded-lg text-slate-300 text-xs">Connected to <strong>${escapeHtml(agent.name)}</strong>. Instructions: <em>${escapeHtml(agent.system_prompt)}</em></div>`;
+      fetchFleet();
+    }
+
+    async function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text || !activeAgentId) return;
+
+      const chat = document.getElementById('chat-messages');
+      chat.innerHTML += `
+        <div class="flex justify-end">
+          <div class="bg-blue-600 text-white rounded-lg p-2.5 max-w-[85%] text-xs">${escapeHtml(text)}</div>
+        </div>
+      `;
+      input.value = '';
+      chat.scrollTop = chat.scrollHeight;
+
+      try {
+        const res = await fetch(`/api/v1/agents/${activeAgentId}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: text }]
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Execution failed');
+        }
+
+        chat.innerHTML += `
+          <div class="flex justify-start">
+            <div class="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg p-3 max-w-[85%] text-xs space-y-1">
+              <div>${escapeHtml(data.response)}</div>
+              <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-800/80 flex items-center justify-between">
+                <span>${data.latency_ms}ms · ${data.total_tokens} tokens</span>
+                <span class="font-mono text-emerald-400">+$${data.cost_usd.toFixed(6)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        chat.scrollTop = chat.scrollHeight;
+        await fetchFinops();
+        await fetchFleet();
+      } catch (err) {
+        chat.innerHTML += `
+          <div class="p-2.5 bg-red-950/30 border border-red-800 rounded-lg text-red-400 text-xs">
+            ${escapeHtml(err.message)}
+          </div>
+        `;
+        chat.scrollTop = chat.scrollHeight;
+      }
+    }
+
+    function openModal() {
+      document.getElementById('create-modal').classList.remove('hidden');
+      document.getElementById('create-modal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('create-modal').classList.add('hidden');
+      document.getElementById('create-modal').classList.remove('flex');
+    }
+
+    function toggleModal(id, show) {
+  const el = document.getElementById(id);
+  if (show) {
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+  } else {
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  }
+}
+
+async function handleContactSubmit(e) {
+  e.preventDefault();
+  const payload = {
+    name: document.getElementById('inq-name').value,
+    email: document.getElementById('inq-email').value,
+    category: document.getElementById('inq-cat').value,
+    message: document.getElementById('inq-msg').value
+  };
+
+  const res = await fetch('/api/v1/inquiries', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    alert("Inquiry received! Our enterprise team will contact you shortly.");
+    toggleModal('contact-modal', false);
+    e.target.reset();
+  } else {
+    alert("Submission error. Please verify input fields.");
+  }
+}
+
+    async function handleCreateAgent(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('modal-name').value,
+        department: document.getElementById('modal-dept').value,
+        model_name: document.getElementById('modal-model').value,
+        system_prompt: document.getElementById('modal-prompt').value,
+        monthly_budget_usd: parseFloat(document.getElementById('modal-budget').value),
+        enable_pii_shield: document.getElementById('modal-pii').checked,
+        temperature: 0.2
+      };
+
+      const res = await fetch('/api/v1/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        closeModal();
+        await fetchFleet();
+        await fetchFinops();
+      } else {
+        alert('Failed to deploy agent. Check console for details.');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+    <!-- Interactive Contact & Product Inquiry Modal -->
+<div id="contact-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-slate-850 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <h3 class="text-base font-bold flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-4 h-4 text-emerald-400"></i> Contact Us / Product Inquiry
+      </h3>
+      <button onclick="toggleModal('contact-modal', false)" class="text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <form onsubmit="handleContactSubmit(event)" class="space-y-3.5 text-xs">
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">Your Name</label>
+        <input required id="inq-name" type="text" placeholder="John Doe" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Work Email</label>
+          <input required id="inq-email" type="email" placeholder="john@enterprise.com" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Inquiry Category</label>
+          <select id="inq-cat" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500 text-slate-200">
+            <option value="PRODUCT_INFO">Product Architecture & Capabilities</option>
+            <option value="FEATURE_REQUEST">Feature / Integration Request</option>
+            <option value="ENTERPRISE_SUPPORT">Enterprise SLA & Pricing Support</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block font-medium text-slate-300 mb-1">How can we help your team?</label>
+        <textarea required id="inq-msg" rows="4" placeholder="Detail your workflow, intended AI use case, or questions..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 outline-none focus:border-blue-500"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="toggleModal('contact-modal', false)" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 font-semibold">Cancel</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Send Inquiry</button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

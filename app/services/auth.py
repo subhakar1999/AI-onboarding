@@ -12,6 +12,8 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.agent import Agent
+from app.models.tenant import TenantProject
+from urllib.parse import urlparse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
@@ -114,9 +116,32 @@ async def get_authenticated_agent_caller(
     # Path A: External Agent API Key
     if token.startswith("af_live_"):
         incoming_hash = AuthService.hash_api_key(token)
-        if agent.api_key_hash != incoming_hash:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Agent API Key")
-        return {"caller_type": "API_KEY", "user_id": str(agent.owner_id), "department": agent.department, "agent": agent}
+        
+        # 1. Check if it's a Tenant-Scoped API Key (Enforces Origin Locking)
+        tenant_result = await db.execute(select(TenantProject).where(TenantProject.api_key_hash == incoming_hash))
+        tenant = tenant_result.scalar_one_or_none()
+        
+        if tenant:
+            # Enforce Dynamic Origin Whitelist
+            origin = request.headers.get("origin") or request.headers.get("referer")
+            if origin:
+                parsed_origin = urlparse(origin)
+                domain_clean = parsed_origin.netloc or parsed_origin.path
+                if tenant.registered_domain != domain_clean:
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Origin blocked by Tenant CORS policy")
+            
+            # Ensure the agent belongs to this tenant's owner
+            if agent.owner_id != tenant.user_id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Agent does not belong to this Tenant")
+                
+            return {"caller_type": "TENANT_API_KEY", "user_id": str(tenant.user_id), "department": agent.department, "agent": agent}
+            
+        # 2. Fallback to Agent-Specific API Key
+        elif agent.api_key_hash == incoming_hash:
+            return {"caller_type": "AGENT_API_KEY", "user_id": str(agent.owner_id), "department": agent.department, "agent": agent}
+            
+        else:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API Key")
 
     # Path B: Interactive Dashboard User (JWT)
     try:

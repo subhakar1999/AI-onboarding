@@ -138,3 +138,4 @@ async def clear_all_agent_knowledge(
     )
     await db.commit()
     return {"message": "All knowledge chunks wiped for this agent"}
+

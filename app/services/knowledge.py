@@ -120,3 +120,4 @@ class KnowledgeService:
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
+

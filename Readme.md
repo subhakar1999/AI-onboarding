@@ -282,6 +282,7 @@ docker compose up --build -d
 ```
 
 ### 5. Access the Platform
+* **Use this like to just view the demo here no backend is live**: [https://ai-onboarding-9rbjmt2nd-bharath-koneru.vercel.app/]
 * **Customer Landing Page**: [http://localhost:8000/](http://localhost:8000/)
 * **Enterprise Studio Dashboard**: [http://localhost:8000/studio](http://localhost:8000/studio)
 * **Authentication Portal**: [http://localhost:8000/auth](http://localhost:8000/auth)

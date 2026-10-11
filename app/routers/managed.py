@@ -39,8 +39,20 @@ async def create_managed_project(
     
     # Check if domain is already registered
     existing = await db.execute(select(ManagedServiceRequest).where(ManagedServiceRequest.registered_domain == domain_clean))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Domain is already registered to a project.")
+    existing_project = existing.scalar_one_or_none()
+    if existing_project:
+        if existing_project.user_id == user.id:
+            # Re-queue background verification if still pending
+            if existing_project.status == ProjectStatus.PENDING_VERIFICATION:
+                background_tasks.add_task(verify_widget_installation, str(existing_project.id))
+            return ProjectResponse(
+                id=str(existing_project.id),
+                project_name=existing_project.project_name,
+                registered_domain=existing_project.registered_domain,
+                status=existing_project.status.value,
+                public_widget_key=existing_project.public_widget_key
+            )
+        raise HTTPException(status_code=400, detail="Domain is already registered to another project.")
 
     # Generate Ephemeral/Tenant-Scoped Public API Key for Widget
     public_widget_key = f"af_pub_{secrets.token_urlsafe(32)}"
@@ -82,6 +94,20 @@ async def create_managed_project(
         public_widget_key=project.public_widget_key
     )
 
+@router.delete("/{project_id}")
+async def delete_managed_project(
+    project_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    project = await db.get(ManagedServiceRequest, project_id)
+    if not project or (project.user_id != user.id and user.role.value != "ADMIN"):
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    await db.delete(project)
+    await db.commit()
+    return {"message": "Managed project successfully removed."}
+
 @router.get("/", response_model=list[ProjectResponse])
 async def list_managed_projects(
     db: AsyncSession = Depends(get_db),
@@ -110,8 +136,8 @@ async def execute_widget(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    # Retrieve Origin header
-    origin = request.headers.get("origin")
+    # Retrieve Origin or Referer header
+    origin = request.headers.get("origin") or request.headers.get("referer")
     if not origin:
         raise HTTPException(status_code=403, detail="Missing Origin header.")
     
@@ -146,7 +172,7 @@ async def execute_widget(
     # FinOps Circuit Breaker Check
     if agent.status == "PAUSED":
         raise HTTPException(status_code=403, detail="Agent is paused by administrator")
-    if agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd:
+    if agent.status == "CIRCUIT_BROKEN" or (agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd):
         agent.status = "CIRCUIT_BROKEN"
         await db.commit()
         raise HTTPException(status_code=402, detail="Agent monthly budget breached.")

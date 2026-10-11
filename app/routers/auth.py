@@ -10,7 +10,7 @@ from app.config import settings
 from app.models.user import User, UserRole, VerificationToken
 from app.services.auth import AuthService, get_current_user
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/auth", tags=["Identity & RBAC"])
 
@@ -76,10 +76,11 @@ async def request_magic_link(
     hashed_token = AuthService.hash_api_key(raw_token)
     
     # Store token in DB
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     v_token = VerificationToken(
         email=payload.email,
         token_hash=hashed_token,
-        expires_at=datetime.utcnow() + timedelta(minutes=15)
+        expires_at=now_utc + timedelta(minutes=15)
     )
     db.add(v_token)
     await db.commit()
@@ -105,7 +106,8 @@ async def verify_magic_link(token: str, email: str, response: Response, db: Asyn
     )
     v_token = result.scalar_one_or_none()
     
-    if not v_token or v_token.expires_at < datetime.utcnow():
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    if not v_token or v_token.expires_at < now_utc:
         raise HTTPException(status_code=400, detail="Invalid or expired token")
         
     # Get user

@@ -1,5 +1,8 @@
+import sys
+import uuid
 import asyncio
 import httpx
+import pytest
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +11,12 @@ from app.models.user import User, UserRole
 from app.models.agent import Agent
 from app.models.provisioning import ManagedServiceRequest, ProjectStatus
 from app.services.auth import AuthService
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 API_URL = "http://127.0.0.1:8000/api/v1"
 
@@ -32,6 +41,7 @@ async def get_or_create_test_tenant():
         token = AuthService.create_access_token(user)
         return user, token
 
+@pytest.mark.asyncio
 async def test_full_onboarding():
     print("=" * 70)
     print("🚀 METERMIND: COMPREHENSIVE AGENT ONBOARDING PROCESS TEST")
@@ -122,7 +132,7 @@ async def test_full_onboarding():
 
         # Activate the project in DB to simulate verification completion
         async with AsyncSessionLocal() as db:
-            project_record = await db.get(ManagedServiceRequest, project_id)
+            project_record = await db.get(ManagedServiceRequest, uuid.UUID(str(project_id)))
             project_record.status = ProjectStatus.LIVE
             project_record.domain_verified = True
             await db.commit()
@@ -193,5 +203,9 @@ async def test_full_onboarding():
         print("🎉 ALL 8 AGENT ONBOARDING STAGES PASSED SUCCESSFULLY!")
         print("=" * 70)
 
+        from app.database import engine
+        await engine.dispose()
+
 if __name__ == "__main__":
     asyncio.run(test_full_onboarding())
+

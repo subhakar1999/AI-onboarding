@@ -302,14 +302,30 @@
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5 font-mono">Origin: ${escapeHtml(d.registered_domain)}</p>
             </div>
-            <button onclick="showSnippet('${d.public_widget_key}')" class="text-slate-400 hover:text-white p-1 rounded transition" title="Show Code">
-              <i data-lucide="code" class="w-4 h-4"></i>
-            </button>
+            <div class="flex items-center gap-1">
+              <button onclick="showSnippet('${d.public_widget_key}')" class="text-slate-400 hover:text-white p-1 rounded transition" title="Show Code">
+                <i data-lucide="code" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteDeployment('${d.id}')" class="text-slate-500 hover:text-red-400 p-1 rounded transition" title="Delete Deployment">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
         `}).join('');
         lucide.createIcons();
       } catch (err) {
         container.innerHTML = `<div class="text-xs text-red-400 py-4 text-center">Failed to load deployments</div>`;
+      }
+    }
+
+    async function deleteDeployment(id) {
+      if (!confirm("Are you sure you want to remove this web deployment?")) return;
+      try {
+        const res = await fetch(`/api/v1/managed/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error("Failed to delete deployment");
+        fetchDeployments();
+      } catch (err) {
+        alert(err.message);
       }
     }
 
@@ -423,6 +439,9 @@
                   <button onclick="event.stopPropagation(); openApiModal('${a.id}', '${escapeHtml(a.name)}')" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-emerald-400 transition" title="Developer API Integration">
                     <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
                   </button>
+                  <button onclick="event.stopPropagation(); handleDeleteAgent('${a.id}', '${escapeHtml(a.name)}')" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-red-400 transition" title="Delete Agent">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -456,6 +475,25 @@
       const chat = document.getElementById('chat-messages');
       chat.innerHTML = `<div class="bg-blue-950/20 border border-blue-800/40 p-3 rounded-lg text-slate-300 text-xs">Connected to <strong>${escapeHtml(agent.name)}</strong>. Instructions: <em>${escapeHtml(agent.system_prompt)}</em></div>`;
       fetchFleet();
+    }
+
+    async function handleDeleteAgent(agentId, agentName) {
+      if (!confirm(`Are you sure you want to delete agent "${agentName}"? This will also remove its knowledge base and records.`)) return;
+      try {
+        const res = await fetch(`/api/v1/agents/${agentId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error("Failed to delete agent");
+        if (activeAgentId === agentId) {
+          activeAgentId = null;
+          document.getElementById('user-input').disabled = true;
+          document.getElementById('send-btn').disabled = true;
+          document.getElementById('selected-agent-label').textContent = "Select an agent to chat";
+          document.getElementById('chat-messages').innerHTML = `<div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-slate-400">Agent deleted. Select an active agent to chat.</div>`;
+        }
+        await fetchFleet();
+        await fetchFinops();
+      } catch (err) {
+        alert(err.message);
+      }
     }
 
     async function sendMessage(e) {

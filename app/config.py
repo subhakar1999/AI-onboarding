@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://agentforge_admin:SecurePass123!@localhost:5432/agentforge_db"
+    DATABASE_URL: str = "postgresql+asyncpg://agentforge_admin:SecurePass123!@localhost:5433/agentforge_db"
     
     # LLM Providers
     OPENAI_API_KEY: str = "sk-mock-key-for-dev"

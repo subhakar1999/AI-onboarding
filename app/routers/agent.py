@@ -77,7 +77,7 @@ async def regenerate_agent_api_key(
     user: User = Depends(get_current_user)
 ):
     agent = await db.get(Agent, agent_id)
-    if not agent or agent.owner_id != user.id:
+    if not agent or (agent.owner_id != user.id and user.role != UserRole.ADMIN):
         raise HTTPException(status_code=404, detail="Agent not found or access unauthorized")
     
     raw_api_key, key_hash = AuthService.generate_agent_api_key()
@@ -91,6 +91,41 @@ async def regenerate_agent_api_key(
         "message": "Store this key safely; it will not be displayed again."
     }
 
+@router.delete("/{agent_id}")
+async def delete_agent(
+    agent_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    agent = await db.get(Agent, agent_id)
+    if not agent or (agent.owner_id != user.id and user.role != UserRole.ADMIN):
+        raise HTTPException(status_code=404, detail="Agent not found or access unauthorized")
+    
+    await db.delete(agent)
+    await db.commit()
+    return {"status": "SUCCESS", "message": f"Agent '{agent.name}' deleted successfully."}
+
+class AgentStatusUpdate(BaseModel):
+    status: str # ACTIVE, PAUSED, CIRCUIT_BROKEN
+
+@router.post("/{agent_id}/status")
+async def update_agent_status(
+    agent_id: UUID,
+    payload: AgentStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    agent = await db.get(Agent, agent_id)
+    if not agent or (agent.owner_id != user.id and user.role != UserRole.ADMIN):
+        raise HTTPException(status_code=404, detail="Agent not found or access unauthorized")
+    
+    if payload.status not in ("ACTIVE", "PAUSED", "CIRCUIT_BROKEN"):
+        raise HTTPException(status_code=400, detail="Invalid status value.")
+        
+    agent.status = payload.status
+    await db.commit()
+    return {"status": "SUCCESS", "agent_id": str(agent.id), "new_status": agent.status}
+
 @router.post("/{agent_id}/portal/execute")
 async def execute_portal_chat(
     agent_id: UUID,
@@ -103,7 +138,7 @@ async def execute_portal_chat(
     
     if agent.status == "PAUSED":
         raise HTTPException(status_code=403, detail="This agent is currently paused by the administrator.")
-    if agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd:
+    if agent.status == "CIRCUIT_BROKEN" or (agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd):
         agent.status = "CIRCUIT_BROKEN"
         await db.commit()
         raise HTTPException(status_code=402, detail="Agent budget reached. Service temporarily paused.")

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from sqlalchemy import text
 from app.config import settings
 from app.database import engine, Base
 from app.routers import agent, execution, finops, auth, inquiries, managed, knowledge
@@ -14,6 +15,7 @@ async def lifespan(app: FastAPI):
     # Auto-generate DB schema tables on startup
     try:
         async with engine.begin() as conn:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
         print(f"Warning: Exception during schema creation: {e}")

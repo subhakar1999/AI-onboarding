@@ -67,7 +67,7 @@ async def execute_agent(
     # Enforce Budget & Hard-Stop
     if agent.status == "PAUSED":
         raise HTTPException(status_code=403, detail="Agent is paused by administrator")
-    if agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd:
+    if agent.status == "CIRCUIT_BROKEN" or (agent.hard_stop_on_breach and agent.current_spend_usd >= agent.monthly_budget_usd):
         agent.status = "CIRCUIT_BROKEN"
         await db.commit()
         raise HTTPException(status_code=402, detail="Agent monthly budget breached.")

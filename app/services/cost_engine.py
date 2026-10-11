@@ -12,6 +12,9 @@ class CostEngine:
         prompt_cost = (Decimal(prompt_tokens) / Decimal(1_000_000)) * input_rate
         completion_cost = (Decimal(completion_tokens) / Decimal(1_000_000)) * output_rate
         
-        return (prompt_cost + completion_cost).quantize(Decimal("0.000001"))
+        total_cost = prompt_cost + completion_cost
+        if (prompt_tokens + completion_tokens > 0) and total_cost < Decimal("0.000001"):
+            return Decimal("0.000001")
+        return total_cost.quantize(Decimal("0.000001"))
 
 cost_engine = CostEngine()

@@ -32,3 +32,18 @@ async def get_finops_summary(db: AsyncSession = Depends(get_db)):
             for row in dept_results
         ]
     }
+
+@router.get("/cost-centers")
+async def get_cost_centers(db: AsyncSession = Depends(get_db)):
+    dept_stmt = select(
+        UsageRecord.cost_center,
+        func.sum(UsageRecord.cost_usd).label("spend"),
+        func.sum(UsageRecord.total_tokens).label("tokens")
+    ).group_by(UsageRecord.cost_center)
+    
+    dept_results = (await db.execute(dept_stmt)).all()
+    
+    return [
+        {"department": row[0], "spend_usd": float(row[1]), "tokens": int(row[2])}
+        for row in dept_results
+    ]

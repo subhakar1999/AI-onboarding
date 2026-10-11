@@ -35,7 +35,7 @@ class KnowledgeService:
     @classmethod
     async def create_embedding(cls, text: str) -> List[float]:
         try:
-            if settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("sk-mock"):
+            if settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith(("sk-mock", "sk-dummy", "sk-your")):
                 response = await openai_client.embeddings.create(
                     input=text,
                     model="text-embedding-3-small"
